@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoice Extractor</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 2rem; }
+    #drop-zone {
+      border: 2px dashed #ccc;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      background: #f9f9f9;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+    }
+    th {
+      background: #eee;
+    }
+  </style>
+</head>
+<body>
+  <h1>Invoice Extractor</h1>
+  <div id="drop-zone">Drop your .txt invoice files here</div>
+  <button onclick="downloadExcel()">Download Excel</button>
+  <div id="output"></div>
+
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const outputDiv = document.getElementById('output');
+    let extractedData = [];
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.background = '#e0ffe0';
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.style.background = '#f9f9f9';
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.background = '#f9f9f9';
+      const files = [...e.dataTransfer.files];
+      files.forEach(readFile);
+    });
+
+    function readFile(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result;
+        const data = extractData(text);
+        if (data) {
+          extractedData.push(data);
+          renderTable();
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function extractData(text) {
+      try {
+        // Find invoice number (starts with HI)
+        const invoiceMatch = text.match(/\b(HI\d+)\b/);
+
+        // Extract all dates and pick the smallest (Performance Date)
+        const dateMatches = [...text.matchAll(/\b(\d{2}\/\d{2}\/\d{2})\b/g)];
+        let performance = '';
+        if (dateMatches.length > 0) {
+          const convertedDates = dateMatches.map(d => new Date(d[1].replace(/(\d{2})$/, '20$1')));
+          convertedDates.sort((a, b) => a - b);
+          performance = convertedDates[0].toLocaleDateString('en-US');
+        }
+
+        const itemMatch = text.match(/NAB[^\n]*/i);
+        const scanAmountMatch = text.match(/\b(\d+(\.\d+)?)\s+per\b/i);
+        const totalMatch = text.match(/TOTAL\s+INVOICE\s+(\d+(\.\d+)?)/i);
+
+        return {
+          Invoice: invoiceMatch ? invoiceMatch[1] : '',
+          Item: itemMatch ? itemMatch[0].trim() : '',
+          Performance: performance,
+          ScanAmount: scanAmountMatch ? scanAmountMatch[1] : '',
+          Amount: totalMatch ? totalMatch[1] : ''
+        };
+      } catch (e) {
+        console.error("Error parsing file:", e);
+        return null;
+      }
+    }
+
+    function renderTable() {
+      if (extractedData.length === 0) return;
+      let html = '<table><tr><th>Invoice</th><th>Item</th><th>Performance</th><th>Scan Amount</th><th>Amount</th></tr>';
+      extractedData.forEach(row => {
+        html += `<tr>
+          <td>${row.Invoice}</td>
+          <td>${row.Item}</td>
+          <td>${row.Performance}</td>
+          <td>${row.ScanAmount}</td>
+          <td>${row.Amount}</td>
+        </tr>`;
+      });
+      html += '</table>';
+      outputDiv.innerHTML = html;
+    }
+
+    function downloadExcel() {
+      if (extractedData.length === 0) return alert("No data to export.");
+      const worksheet = XLSX.utils.json_to_sheet(extractedData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Invoices");
+      XLSX.writeFile(workbook, "invoices.xlsx");
+    }
+  </script>
+</body>
+</html>
