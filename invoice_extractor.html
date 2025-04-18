@@ -82,7 +82,8 @@
           performance = convertedDates[0].toLocaleDateString('en-US');
         }
 
-        const itemMatch = text.match(/NAB[^\n]*/i);
+        const itemMatch = line.match(/NAB\s[\w\s]+/);
+        const item = itemMatch ? itemMatch[0].trim() : "TATES";
         const scanAmountMatch = text.match(/\b(\d+(\.\d+)?)\s+per\b/i);
         const totalMatch = text.match(/TOTAL\s+INVOICE\s+(\d+(\.\d+)?)/i);
 
