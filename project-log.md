@@ -44,3 +44,11 @@ Created and uploaded a detailed `README.md` file with project overview, usage st
 Updated the item extraction logic to check for a line starting with "NAB ". If not found, the item value is now defaulted to `"TATES"` instead of being left blank. This change ensures consistent Excel output even when the expected item format is missing from the invoice text.
 
 ---
+
+### [Date: 2025-04-21]
+
+**Commit:** Update UI labels and parsers: Rename CVS to Longs Drug, remove Target  
+**Description:**  
+- Renamed dropdown label "CVS" to "Longs Drug" to reflect correct customer naming.  
+- Removed "Target" from dropdown and parser list as it is not used.  
+- Parser for "Longs Drug" remains mapped to existing logic originally developed for CVS format.
